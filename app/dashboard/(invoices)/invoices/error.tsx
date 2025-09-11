@@ -1,6 +1,12 @@
 'use client';
  
+import { Metadata } from 'next';
 import { useEffect } from 'react';
+
+export const metadata: Metadata = {
+  title: 'Error',
+  description: 'Some error happen. Please try again!'
+};
  
 export default function Error({
   error,
