@@ -4,17 +4,30 @@ import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import Link from 'next/link';
 import { generatePagination } from '@/app/lib/utils';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
 
 export default function Pagination({ totalPages }: { totalPages: number }) {
   // NOTE: Uncomment this code in Chapter 11
 
-  // const allPages = generatePagination(currentPage, totalPages);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPage = Number(searchParams.get('page')) || 1;
+
+  const allPages = generatePagination(currentPage, totalPages);
+
+  function createPageURL(pageNumber: string | number) {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', pageNumber.toString());
+    return `${pathname}?${params.toString()}`;
+  }
 
   return (
     <>
       {/*  NOTE: Uncomment this code in Chapter 11 */}
 
-      {/* <div className="inline-flex">
+      <div className="inline-flex">
         <PaginationArrow
           direction="left"
           href={createPageURL(currentPage - 1)}
@@ -47,7 +60,7 @@ export default function Pagination({ totalPages }: { totalPages: number }) {
           href={createPageURL(currentPage + 1)}
           isDisabled={currentPage >= totalPages}
         />
-      </div> */}
+      </div>
     </>
   );
 }
@@ -74,10 +87,23 @@ function PaginationNumber({
     },
   );
 
+  const { replace } = useRouter();
+
+  const navigationWithBouncing = useDebouncedCallback((href: string) => {
+    replace(href);
+  }, 300);
+
   return isActive || position === 'middle' ? (
     <div className={className}>{page}</div>
   ) : (
-    <Link href={href} className={className}>
+    <Link 
+      href={href} 
+      className={className}
+      onNavigate={e => {
+        e.preventDefault();
+        navigationWithBouncing(href)
+      }}
+    >
       {page}
     </Link>
   );
@@ -109,10 +135,23 @@ function PaginationArrow({
       <ArrowRightIcon className="w-4" />
     );
 
+  const { replace } = useRouter();
+
+  const navigationWithBouncing = useDebouncedCallback((href: string) => {
+    replace(href);
+  }, 300);
+
   return isDisabled ? (
     <div className={className}>{icon}</div>
   ) : (
-    <Link className={className} href={href}>
+    <Link
+      className={className}
+      href={href}
+      onNavigate={e => {
+        e.preventDefault();
+        navigationWithBouncing(href)
+      }}
+    >
       {icon}
     </Link>
   );
