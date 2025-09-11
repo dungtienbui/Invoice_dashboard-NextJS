@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { error } from 'console';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -63,15 +65,15 @@ export async function createInvoice(prevState: State, formData: FormData): Promi
           VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
       `;
 
-    } catch (e) {
-      console.error('Error: ', e);
-      
-      // If a database error occurs, return a more specific error.
-      return {
-        message: 'Database Error: Failed to Create Invoice.',
-      };
-    }
-    
+  } catch (e) {
+    console.error('Error: ', e);
+
+    // If a database error occurs, return a more specific error.
+    return {
+      message: 'Database Error: Failed to Create Invoice.',
+    };
+  }
+
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
@@ -107,10 +109,10 @@ export async function updateInvoice(id: string, prevState: State, formData: Form
       SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
       WHERE id = ${id}
     `;
-    
+
   } catch (e) {
     console.error('Error: ', e);
-    
+
     return {
       message: 'Database Error: Failed to Update Invoice.',
     }
@@ -124,4 +126,23 @@ export async function updateInvoice(id: string, prevState: State, formData: Form
 export async function deleteInvoice(id: string) {
   await sql`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
 }
